@@ -68,6 +68,44 @@ __global__ void HeatEquation1DGPU_IterationKernel(float * __restrict__ d_T, floa
 	
 }
 
+__global__ void HeatEquation1DGPU_IterationSharedKernel(float * __restrict__ d_T, float * __restrict__ d_DeltaT, const float T0, const float Q_N_1, const float dx, const float k, const float rho, 
+					   const float cp, const float alpha, const float dt, const float maxErr, const int maxIterNumber, const int N)
+{
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	
+	// --- Shared memory has 0, 1, ..., BLOCKSIZE - 1, BLOCKSIZE locations, so it has BLOCKSIZE locations + 2 (left and right) halo cells.
+	__shared__ float d_T_shared[BLOCKSIZE + 2];				// --- Need to know BLOCKSIZE beforehand
+	
+	if (tid < N) {
+		
+		// --- Load data from global memory to shared memory locations 1, 2, ..., BLOCKSIZE - 1
+		d_T_shared[threadIdx.x + 1] = d_T[tid];					
+
+		// --- Left halo cell
+		if ((threadIdx.x == 0) && (tid > 0)) { d_T_shared[0] = d_T[tid - 1]; }			
+
+		// --- Right halo cell
+		if ((threadIdx.x == blockDim.x - 1) && (tid < N - 1)) { d_T_shared[threadIdx.x + 2] = d_T[tid + 1]; } 
+
+		__syncthreads();
+		
+		// --- Internal region between the two boundaries.
+		if ((tid > 0) && (tid < N - 1) ) d_DeltaT[tid]  = dt * alpha *((d_T_shared[threadIdx.x] + d_T_shared[threadIdx.x + 2] - 2.f * d_T_shared[threadIdx.x + 1]) / (dx * dx));
+		
+		// --- Enforcing boundary condition at the left end.
+		if (tid == 0)					 d_DeltaT[0]	= 0.f;
+		
+		// --- Enforcing boundary condition at the right end.
+ 		if (tid == N - 1)				 d_DeltaT[tid]	= dt * 2.f * ((k * ((d_T_shared[threadIdx.x] - d_T_shared[threadIdx.x + 1]) / dx) + Q_N_1) / (dx * rho * cp));
+		
+		// --- Update the temperature
+        d_T[tid] = d_T[tid] + d_DeltaT[tid]; 
+
+		d_DeltaT[tid] = abs(d_DeltaT[tid]);
+	}
+	
+}
+
 /****************************/
 /* GPU CALCULATION FUNCTION */
 /****************************/
@@ -82,10 +120,11 @@ void HeatEquation1DGPU(float * __restrict__ d_T, int *Niter, const float T0, con
 
 	float current_max = 0.f;
 	do {
-		HeatEquation1DGPU_IterationKernel<<<iDivUp(N, BLOCKSIZE), BLOCKSIZE>>>(d_T, d_DeltaT, T0, Q_N_1, dx, k, rho, cp, alpha, dt, maxErr, maxIterNumber, N);
+		//HeatEquation1DGPU_IterationKernel<<<iDivUp(N, BLOCKSIZE), BLOCKSIZE>>>(d_T, d_DeltaT, T0, Q_N_1, dx, k, rho, cp, alpha, dt, maxErr, maxIterNumber, N);
+		HeatEquation1DGPU_IterationSharedKernel<<<iDivUp(N, BLOCKSIZE), BLOCKSIZE>>>(d_T, d_DeltaT, T0, Q_N_1, dx, k, rho, cp, alpha, dt, maxErr, maxIterNumber, N);
 
 		thrust::device_ptr<float> d = thrust::device_pointer_cast(d_DeltaT);  
-		current_max = thrust::reduce(d, d + N, current_max, thrust::maximum<float>());;
+		current_max = thrust::reduce(d, d + N, current_max, thrust::maximum<float>());
 
         // --- Increase iteration counter
 		(*Niter)++;
@@ -148,7 +187,7 @@ int main()
 	/* CHECKING THE RESULTS */
     /************************/
 	for (int i = 0; i < N; i++) {
-        printf("i = %i; T_host = %3.10f; T_device = %3.10f\n", i, h_T_final_host[i], h_T_final_device[i]);
+        printf("Node = %i; T_host = %3.10f; T_device = %3.10f\n", i, h_T_final_host[i], h_T_final_device[i]);
 		if (h_T_final_host[i] != h_T_final_device[i]) {
             printf("Error at i = %i; T_host = %f; T_device = %f\n", i, h_T_final_host[i], h_T_final_device[i]);
             return 0;
