@@ -13,7 +13,7 @@ y                   = linspace(0, Ly, Ny);                                  % --
 dx                  = x(2) - x(1);                                          % --- Mesh step along x
 dy                  = y(2) - y(1);                                          % --- Mesh step along y
 v                   = 5;                                                    % --- Wave speed
-p                   = 0.02;                                                % --- Wave decay factor
+p                   = 0.02;                                                 % --- Wave decay factor
 dt                  = 0.25 / (v * sqrt((1 / dx)^2 + (1 / dy)^2));           % --- Time-Step matching the Courant-Friedrichs-Lewy condition
 T                   = floor((3 * sqrt(Lx^2 + Ly^2) / v) / dt);              % --- Total number of time steps
 t                   = (0 : T - 1) * dt;                                     % --- Time axis
@@ -21,7 +21,7 @@ t                   = (0 : T - 1) * dt;                                     % --
 % --- Initial conditions
 u                   = zeros(Ny, Nx);                                        % --- Current solution u(x, y, t)
 indxc               = floor(Nx / 3);                                        % --- Index for the source location along x
-indyc               = floor(Ny / 2);                                        % --- Index for the source location along x
+indyc               = floor(Ny / 2);                                        % --- Index for the source location along y
 xc                  = x(indxc);                                             % --- x-coordinate of source
 yc                  = y(indyc);                                             % --- y-coordinate of source
 indRc               = 50;
