@@ -120,8 +120,10 @@ dt = 1 / (8 * f);
 kk = 1;
 omegat = linspace(0, 2 * pi, ceil((1 / f) / dt));
 count = 0;
+figure(5)
 while kk == 1,
 	
+    figure(5)
     surf(Xe, Ye, 2 * real(E * exp(1i * omegat(count + 1))));
     view(2), axis([-ae ae -be be]), axis equal, shading interp, colorbar
 	drawnow
@@ -129,3 +131,4 @@ while kk == 1,
     count = mod(count + 1, length(omegat));
     
 end
+
