@@ -1,4 +1,4 @@
-% --- Solves the heat equation u_t + u_x = 0 in (0, 2 * pi) 
+% --- Solves the heat equation u_t + v * u_x = 0 in (0, 2 * pi) 
 
 % --- INPUTS
 % --- propagatingFunction           : Solution function
