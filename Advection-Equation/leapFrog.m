@@ -19,7 +19,7 @@ function [u, uRef, x, t] = leapFrog(propagatingFunction, v, t_0, t_f, M, N)
 % SPACE DISCRETIZATION %
 %%%%%%%%%%%%%%%%%%%%%%%%
 dx  = 2 * pi / N;                   % --- Discretization step in space
-x   = (0 : dx : 2 * pi)';           % --- Discretization points
+x   = (0 : dx : 2 * pi);            % --- Discretization points
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % TIME DISCRETIZATION %
@@ -30,18 +30,17 @@ t   = t_0 : dt : t_f;
 alpha = v * dt / dx;                % --- Courant number
 
 % --- Initialize the solutions (approximated and exact)
-u            = zeros(N + 1, M + 1); % --- u(u, t)
-u(:, 1)      = propagatingFunction(x - v * t(1));     % --- Initial condition
-u(:, 2)      = propagatingFunction(x - v * t(2));     % --- Initial condition
-uRef(:, 1)   = u(:, 1);
-uRef(:, 2)   = u(:, 2);
+u            = zeros(M + 1, N + 1); % --- u(u, t); First row is for initial condition, first column is for boundary condition
+u(1, :)      = propagatingFunction(x - v * t(1));     % --- Initial condition
+u(2, :)      = propagatingFunction(x - v * t(2));     % --- Initial condition
+uRef(1, :)   = u(1, :);
+uRef(2, :)   = u(2, :);
 
-for l = 2 : M - 1       % --- Time step
+Q = (1 - alpha) / (1 + alpha);
+for l = 2 : M - 1       % --- Time steps
 
-    u(2 : N, l + 1)     = u(2 : N, l - 1) - (alpha) * ...
-                         (u(3 : N + 1, l) - u(1 : N - 1, l));
-    u(1, l + 1)         = propagatingFunction(x(1) - v * t(l + 1));
-%     u(N + 1, l + 1)     = 2 * u(N, l + 1) - u(N - 1, l + 1);
-    u(N + 1, l + 2)     = u(N + 1, l) - 2 * alpha * (u(N + 1, l + 1) - u(N, l + 1));
-    uRef(:, l + 1)      = propagatingFunction(x - v * t(l + 1));
+    u(l + 1, 2 : N)     = u(l - 1, 2 : N) - (alpha) * (u(l, 3 : N + 1) - u(l, 1 : N - 1)); % --- Update equation
+    u(l + 1, 1)         = propagatingFunction(x(1) - v * t(l + 1));
+    u(l + 1, N + 1)     = u(l, N) - Q * u(l + 1, N) + Q * u(l, N + 1); % --- Enforcing boundary condition (left boundary)
+    uRef(l + 1, :)      = propagatingFunction(x - v * t(l + 1));
 end
