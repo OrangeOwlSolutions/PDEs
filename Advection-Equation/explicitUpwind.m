@@ -27,7 +27,7 @@ x   = (0 : dx : 2 * pi);           % --- Discretization points
 dt  = (t_f - t_0) / M;              % --- Discretization time
 t   = t_0 : dt : t_f;
 
-alpha = v * dt / dx;                % --- Courant number
+alpha = v * dt / dx                % --- Courant number
 
 % --- Initialize the solutions (approximated and exact)
 u            = zeros(M + 1, N + 1); % --- u(u, t); First row is for initial condition, first column is for boundary condition

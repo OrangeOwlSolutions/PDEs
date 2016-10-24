@@ -5,7 +5,7 @@ clc
 t_0 = 0;                                    % --- Initial time
 t_f = 15;                                   % --- Final time
 M   = 200;                                  % --- Number of time steps
-N   = 100;                                  % --- Number of space mesh points
+N   = 165;                                  % --- Number of space mesh points
 v   = 0.5;                                  % --- Wave speed
 
 % --- The numerical solution is arranged in a (M + 1) x (N + 1) matrix.
@@ -33,20 +33,21 @@ v   = 0.5;                                  % --- Wave speed
 % --- Try then backward difference discretization with positive
 % perturbation speed to see that upwind updates work correctly
 % --- Try also the case when M = 50: Courant condition is not met
+% --- Try also N = 160: negligible attenuation case
 [uUpwind, uRef, x, t] = explicitUpwind(@propagatingFunction, v, t_0, t_f, M, N);
-% for m = 1 : M
-%     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
-%     hold on
-%     plot(x, uUpwind(m, :), 'LineWidth', 2);
-%     axis([0, 2 * pi, -.3, 1.3]);
-%     title('Explicit Downwind', 'FontSize', 14)
-%     xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
-%     hold off
-%     figure(1)
-%     pause(0.1)
-% end
-% 
-% pause
+for m = 1 : M
+    plot(x, uRef(m, :), 'r', 'LineWidth', 2);
+    hold on
+    plot(x, uUpwind(m, :), 'LineWidth', 2);
+    axis([0, 2 * pi, -.3, 1.3]);
+    title('Explicit Downwind', 'FontSize', 14)
+    xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
+    hold off
+    figure(1)
+    pause(0.1)
+end
+
+pause
 
 % --- Try this to see that second order approximation of space derivative leads
 % to an unstable approach
@@ -83,7 +84,7 @@ v   = 0.5;                                  % --- Wave speed
 % pause
 
 % --- Lax Friedrichs with treatment of the right boundary
-[uLaxFriedrichs, uRef, x, t] = laxFriedrichs(@propagatingFunction, v, t_0, t_f, M, N);
+% [uLaxFriedrichs, uRef, x, t] = laxFriedrichs(@propagatingFunction, v, t_0, t_f, M, N);
 % for m = 1 : M
 %     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
 %     hold on
@@ -99,7 +100,7 @@ v   = 0.5;                                  % --- Wave speed
 % pause
 
 % --- Lax Wendroff
-[uLaxWendroff, uRef, x, t] = laxWendroff(@propagatingFunction, v, t_0, t_f, M, N);
+% [uLaxWendroff, uRef, x, t] = laxWendroff(@propagatingFunction, v, t_0, t_f, M, N);
 % for m = 1 : M
 %     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
 %     hold on
@@ -115,7 +116,7 @@ v   = 0.5;                                  % --- Wave speed
 % pause
 
 % --- Leapfrog
-[uLeapFrog, uRef, x, t] = leapFrog(@propagatingFunction, v, t_0, t_f, M, N);
+% [uLeapFrog, uRef, x, t] = leapFrog(@propagatingFunction, v, t_0, t_f, M, N);
 % for m = 1 : M
 %     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
 %     hold on
@@ -131,20 +132,18 @@ v   = 0.5;                                  % --- Wave speed
 % pause
 
 % --- Final comparison
-for m = 1 : M
-    plot(x, uRef(m, :), 'r*', 'LineWidth', 2);
-    hold on
-    plot(x, uUpwind(m, :),       'LineWidth', 2);
-    plot(x, uLaxFriedrichs(m, :),  'g', 'LineWidth', 2);
-    plot(x, uLaxWendroff(m, :),  'k', 'LineWidth', 2);
-    plot(x, uLeapFrog(m, :), 'c', 'LineWidth', 2);
-    axis([0, 2 * pi, -.3, 1.3]);
-    legend('Reference', 'Explicit Upwind', 'Lax-Friedrichs', 'Lax Wendroff', 'LeapFrog')
-    xlabel('x', 'FontSize', 14)
-    hold off
-    figure(1)
-    pause(0.1)
-end
-
-
+% for m = 1 : M
+%     plot(x, uRef(m, :), 'r*', 'LineWidth', 2);
+%     hold on
+%     plot(x, uUpwind(m, :),       'LineWidth', 2);
+%     plot(x, uLaxFriedrichs(m, :),  'g', 'LineWidth', 2);
+%     plot(x, uLaxWendroff(m, :),  'k', 'LineWidth', 2);
+%     plot(x, uLeapFrog(m, :), 'c', 'LineWidth', 2);
+%     axis([0, 2 * pi, -.3, 1.3]);
+%     legend('Reference', 'Explicit Upwind', 'Lax-Friedrichs', 'Lax Wendroff', 'LeapFrog')
+%     xlabel('x', 'FontSize', 14)
+%     hold off
+%     figure(1)
+%     pause(0.1)
+% end
 
