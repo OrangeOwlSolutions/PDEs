@@ -38,6 +38,6 @@ for l = 1 : M       % --- Time steps
     u(l + 1, 2 : N) = (u(l, 3 : N + 1) + u(l, 1 : N - 1)) / 2 - (alpha / 2) * ...
                       (u(l, 3 : N + 1) - u(l, 1 : N - 1)); % --- Update equation
     u(l + 1, 1)         = propagatingFunction(x(1) - v * t(l + 1)); % --- Enforcing boundary condition (left boundary)
-    u(l + 1, N + 1)     = 2 * u(l, N) - u(l, N - 1); % --- Enforcing a boundary condition 
+    u(l + 1, N + 1)     = 2 * u(l, N) - u(l, N - 1); % --- Enforcing an approximate boundary condition (right boundary)
     uRef(l + 1, :)      = propagatingFunction(x - v * t(l + 1));
 end

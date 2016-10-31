@@ -32,15 +32,16 @@ alpha = v * dt / dx;                % --- Courant number
 % --- Initialize the solutions (approximated and exact)
 u            = zeros(M + 1, N + 1); % --- u(u, t); First row is for initial condition, first column is for boundary condition
 u(1, :)      = propagatingFunction(x - v * t(1));     % --- Initial condition
-u(2, :)      = propagatingFunction(x - v * t(2));     % --- Initial condition
+u(2, 2 : N)  = u(1, 2 : N) - 0.5 * alpha * (u(1, 3 : N + 1) - u(1, 1 : N - 1)); % --- Matsuno "initial condition"
+u(2, 1)      = propagatingFunction(x(1) - v * t(2));    % --- Enforcing boundary condition (left boundary)
 uRef(1, :)   = u(1, :);
-uRef(2, :)   = u(2, :);
+uRef(2, :)   = propagatingFunction(x - v * t(2));
 
 Q = (1 - alpha) / (1 + alpha);
 for l = 2 : M - 1       % --- Time steps
 
     u(l + 1, 2 : N)     = u(l - 1, 2 : N) - (alpha) * (u(l, 3 : N + 1) - u(l, 1 : N - 1)); % --- Update equation
     u(l + 1, 1)         = propagatingFunction(x(1) - v * t(l + 1));    % --- Enforcing boundary condition (left boundary)
-    u(l + 1, N + 1)     = u(l, N) - Q * u(l + 1, N) + Q * u(l, N + 1); % --- Enforcing boundary condition (right boundary)
+    u(l + 1, N + 1)     = u(l, N) - Q * u(l + 1, N) + Q * u(l, N + 1); % --- Enforcing Mur's boundary condition (right boundary)
     uRef(l + 1, :)      = propagatingFunction(x - v * t(l + 1));
 end

@@ -34,20 +34,20 @@ v   = 0.5;                                  % --- Wave speed
 % perturbation speed to see that upwind updates work correctly
 % --- Try also the case when M = 50: Courant condition is not met
 % --- Try also N = 160: negligible attenuation case
-[uUpwind, uRef, x, t] = explicitUpwind(@propagatingFunction, v, t_0, t_f, M, N);
-for m = 1 : M
-    plot(x, uRef(m, :), 'r', 'LineWidth', 2);
-    hold on
-    plot(x, uUpwind(m, :), 'LineWidth', 2);
-    axis([0, 2 * pi, -.3, 1.3]);
-    title('Explicit Downwind', 'FontSize', 14)
-    xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
-    hold off
-    figure(1)
-    pause(0.1)
-end
-
-pause
+% [uUpwind, uRef, x, t] = explicitUpwind(@propagatingFunction, v, t_0, t_f, M, N);
+% for m = 1 : M
+%     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
+%     hold on
+%     plot(x, uUpwind(m, :), 'LineWidth', 2);
+%     axis([0, 2 * pi, -.3, 1.3]);
+%     title('Explicit Downwind', 'FontSize', 14)
+%     xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
+%     hold off
+%     figure(1)
+%     pause(0.1)
+% end
+% 
+% pause
 
 % --- Try this to see that second order approximation of space derivative leads
 % to an unstable approach
@@ -116,20 +116,21 @@ pause
 % pause
 
 % --- Leapfrog
-% [uLeapFrog, uRef, x, t] = leapFrog(@propagatingFunction, v, t_0, t_f, M, N);
-% for m = 1 : M
-%     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
-%     hold on
-%     plot(x, uLeapFrog(m, :), 'LineWidth', 2);
-%     axis([0, 2 * pi, -.3, 1.3]);
-%     title('Leapfrog', 'FontSize', 14)
-%     xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
-%     hold off
-%     figure(1)
-%     pause(0.1)
-% end
-% 
-% pause
+[uLeapFrog, uRef, x, t] = leapFrog(@propagatingFunction, v, t_0, t_f, M, N);
+uLeapFrog = reshape(load('D:\Project\FDTD\Advection-Equation\Advection-Equation-CUDA\Advection-Equation-CUDA\d_u.txt'), N + 1, M + 1).';
+for m = 1 : M
+    plot(x, uRef(m, :), 'r', 'LineWidth', 2);
+    hold on
+    plot(x, uLeapFrog(m, :), 'LineWidth', 2);
+    axis([0, 2 * pi, -.3, 1.3]);
+    title('Leapfrog', 'FontSize', 14)
+    xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
+    hold off
+    figure(1)
+    pause(0.1)
+end
+
+pause
 
 % --- Final comparison
 % for m = 1 : M
