@@ -15,33 +15,33 @@ v   = 0.5;                                  % --- Wave speed
 % The first row hosts the initial condition, while the first column hosts
 % the left boundary condition.
 
-[uTraveling, uRef, x, t] = travelingSolution(v, t_0, t_f, M, x1, x2, N);
-for m = 1 : M
-    plot(x, uRef(m, :), 'r', 'LineWidth', 2);
-    hold on
-    plot(x, uTraveling(m, :), '*', 'LineWidth', 2);
-    axis([0, 2 * pi, -0.2, 1.1]);
-    title('Traveling wave', 'FontSize', 14)
-    xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
-    hold off
-    figure(1)
-    pause(0.1)
-end
-
-pause
-
-% [uStationary, uRef, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N);
+% [uTraveling, uRef, x, t] = travelingSolution(v, t_0, t_f, M, x1, x2, N);
 % for m = 1 : M
 %     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
 %     hold on
-%     plot(x, uStationary(m, :), '*', 'LineWidth', 2);
-%     axis([0, 2 * pi, -1.1, 1.1]);
-%     title('Stationary wave', 'FontSize', 14)
+%     plot(x, uTraveling(m, :), '*', 'LineWidth', 2);
+%     axis([0, 2 * pi, -0.2, 1.1]);
+%     title('Traveling wave', 'FontSize', 14)
 %     xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
 %     hold off
 %     figure(1)
 %     pause(0.1)
 % end
+% 
+% pause
+
+[uStationary, uRef, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N);
+for m = 1 : M
+    plot(x, uRef(m, :), 'r', 'LineWidth', 2);
+    hold on
+    plot(x, uStationary(m, :), '*', 'LineWidth', 2);
+    axis([0, 2 * pi, -1.1, 1.1]);
+    title('Stationary wave', 'FontSize', 14)
+    xlabel('Red: reference solution; Blue: numerical solution', 'FontSize', 14)
+    hold off
+    figure(1)
+    pause(0.1)
+end
 
 pause
 
