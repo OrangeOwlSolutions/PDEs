@@ -16,7 +16,7 @@
 % --- uRef                          : Exact solution
 % --- x                             : Space discretization points
 % --- t                             : Time discretization points
-function [u, uRef, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N)
+function [u, uRef, uFW, uBW, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N)
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 % SPACE DISCRETIZATION %
@@ -38,14 +38,18 @@ alpha = v * dt / dx                % --- Courant number
 % --- Initial condition
 u               = zeros(M + 1, N + 1); % --- u(u, t); First row is for initial condition, first column is for boundary condition
 uRef            = zeros(M + 1, N + 1); % --- Allocating the reference solution
+uFW             = zeros(M + 1, N + 1); % --- Allocating the forward propagating part of the reference solution
+uBW             = zeros(M + 1, N + 1); % --- Allocating the backward propagating part of the reference solution
 u1(1 : N + 1)   = 0.5 * (propagatingFunctionStationary(x - x1 - v * t(1), x1, x2) - ...
                          propagatingFunctionStationary(x - x1 + v * t(1), x1, x2));   % --- It includes also the two boundary conditions        
 u(1, 1 : N + 1) = u1(1 : N + 1);
 uRef(1, :)      = u1(1 : N + 1);
+uFW(1, :)       = 0.5 * propagatingFunctionStationary(x - x1 - v * t(1), x1, x2);
+uBW(1, :)       = -0.5 * propagatingFunctionStationary(x - x1 + v * t(1), x1, x2);
 
 % --- First step
 u2              = zeros(1, N + 1);
-u2(1)           = 0.5 * (propagatingFunctionStationary(- v * t(2), x1, x2) - propagatingFunctionStationary(- v * t(2), x1, x2));  % --- Left boundary condition
+u2(1)           = 0.5 * (propagatingFunctionStationary(- v * t(2), x1, x2) - propagatingFunctionStationary(v * t(2), x1, x2));  % --- Left boundary condition
 u2(2 : N)       = alpha^2 * u1(3 : N + 1) / 2 ...
                 + (1 - alpha^2) * u1(2 : N)   ...
                 +  alpha^2      * u1(1 : N - 1) / 2 ...
@@ -54,6 +58,8 @@ u2(2 : N)       = alpha^2 * u1(3 : N + 1) / 2 ...
 u2(N + 1)       = 0.5 * (propagatingFunctionStationary(x2 - x1 - v * t(2), x1, x2) - propagatingFunctionStationary(x2 - x1 + v * t(2), x1, x2));  % --- Right boundary condition
 u(2, 1 : N + 1) = u2(1 : N + 1);
 uRef(2, 1 : N + 1)  = 0.5 * (propagatingFunctionStationary(x - x1 - v * t(2), x1, x2) - propagatingFunctionStationary(x - x1 + v * t(2), x1, x2));  % --- Right boundary condition
+uFW(2, :)       = 0.5 * propagatingFunctionStationary(x - x1 - v * t(2), x1, x2);
+uBW(2, :)       = -0.5 * propagatingFunctionStationary(x - x1 + v * t(2), x1, x2);
 
 %  Take all the other steps.
 %
@@ -72,5 +78,7 @@ for l = 2 : M       % --- Time steps
     u2(1 : N + 1)   = u3(1 : N + 1);
     
     uRef(l + 1, 1 : N + 1)  = 0.5 * (propagatingFunctionStationary(x - x1 - v * t(l + 1), x1, x2) - propagatingFunctionStationary(x - x1 + v * t(l + 1), x1, x2));  % --- Right boundary condition
+    uFW(l + 1, :)       = 0.5 * propagatingFunctionStationary(x - x1 - v * t(l + 1), x1, x2);
+    uBW(l + 1, :)       = -0.5 * propagatingFunctionStationary(x - x1 + v * t(l + 1), x1, x2);
 end
 

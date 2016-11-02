@@ -30,10 +30,13 @@ v   = 0.5;                                  % --- Wave speed
 % 
 % pause
 
-[uStationary, uRef, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N);
+[uStationary, uRef, uFW, uBW, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N);
+uStationary = reshape(load('D:\Project\FDTD\FDTD_1D_Acoustics\FDTD_1D_Acoustics_CUDA\FDTD_1D_Acoustics_CUDA\d_u.txt'), N + 1, M + 1).'; 
 for m = 1 : M
     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
     hold on
+    plot(x, uFW(m, :), 'g', 'LineWidth', 2);
+    plot(x, uBW(m, :), 'c', 'LineWidth', 2);
     plot(x, uStationary(m, :), '*', 'LineWidth', 2);
     axis([0, 2 * pi, -1.1, 1.1]);
     title('Stationary wave', 'FontSize', 14)
