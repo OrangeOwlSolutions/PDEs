@@ -244,6 +244,7 @@ int main() {
 	for (int l = 1; l < M - 1; l++) {			// --- Time steps
 
 		//updateKernelNoSharedNotWorking << <iDivUp(N + 1, BLOCKSIZE), BLOCKSIZE >> >(d_u1, d_u2, d_u3, d_u, d_t, d_x, v, x_0, x_f, alpha, l, N);
+		//updateKernelNoShared << <iDivUp(N + 1, BLOCKSIZE), BLOCKSIZE >> >(d_u1, d_u2, d_u3, d_u, d_t, d_x, v, x_0, x_f, alpha, l, N);
 		updateKernelShared << <iDivUp(N + 1, BLOCKSIZE), BLOCKSIZE >> >(d_u1, d_u2, d_u3, d_u, d_t, d_x, v, x_0, x_f, alpha, l, N);
 #ifdef DEBUG
 		gpuErrchk(cudaPeekAtLastError());
