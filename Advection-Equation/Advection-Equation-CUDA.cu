@@ -29,7 +29,7 @@ __global__ void setInitialConditionsKernel0(float * __restrict__ d_u, const floa
 
 	if (tid >= N + 1) return;
 
-	d_u[tid]			= propagatingFunction(d_x[tid] - v * d_t[0]);     // --- Initial condition
+	d_u[tid] = propagatingFunction(d_x[tid] - v * d_t[0]);     // --- Initial condition
 
 }
 
@@ -39,7 +39,7 @@ __global__ void setInitialConditionsKernel1(float * __restrict__ d_u, const floa
 
 	if (tid > N + 1) return;
 
-	// --- Matsuno nitial condition
+	// --- Matsuno initial condition
 	if (tid == 0) d_u[N + 1] = propagatingFunction(d_x[tid] - v * d_t[1]);			// --- Enforcing boundary condition (left boundary)
 	else d_u[tid + N + 1] = d_u[tid] - 0.5 * alpha * (d_u[tid + 1] - d_u[tid - 1]);
 
@@ -48,18 +48,19 @@ __global__ void setInitialConditionsKernel1(float * __restrict__ d_u, const floa
 /*****************/
 /* UPDATE KERNEL */
 /*****************/
-__global__ void updateKernel(float * __restrict__ d_u, const float * __restrict__ d_t, const float * __restrict__ d_x, const float v, 
-	                         const float alpha, const float Q, const int l, const int N) {
+// --- Leapfrog scheme
+__global__ void updateKernel(float * __restrict__ d_u, const float * __restrict__ d_t, const float * __restrict__ d_x, const float v,
+	const float alpha, const float Q, const int l, const int N) {
 
 	const int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if (tid >= N + 1) return;
 
 	if ((tid > 0) && (tid < N))
-		
+
 		// --- Update equation
 		d_u[tid + (l + 1) * (N + 1)] = d_u[tid + (l - 1) * (N + 1)] - alpha * (d_u[tid + 1 + l * (N + 1)] - d_u[tid - 1 + l * (N + 1)]);
-	
+
 	else if (tid == 0) {
 
 		// --- Enforcing boundary condition (left boundary)
@@ -83,24 +84,24 @@ int main() {
 	const float t_f = 15.f;								// --- Final time
 	const float x_0 = 0.f;
 	const float x_f = 2.f * PI_f;
-	const int	M	= 200;								// --- Number of time steps
-	const int	N	= 165;								// --- Number of space mesh points
-	const float	v	= 0.5;								// --- Wave speed
+	const int	M = 200;								// --- Number of time steps
+	const int	N = 165;								// --- Number of space mesh points
+	const float	v = 0.5;								// --- Wave speed
 
 	/************************/
 	/* SPACE DISCRETIZATION */
 	/************************/
-	const float	dx	= 2.f * PI_f / (float)N;			// --- Discretization step in space
-	float *d_x		= d_colon(x_0, dx, x_f);			// --- Discretization points
+	const float	dx = 2.f * PI_f / (float)N;			// --- Discretization step in space
+	float *d_x = d_colon(x_0, dx, x_f);			// --- Discretization points
 
 	/***********************/
 	/* TIME DISCRETIZATION */
 	/***********************/
-	const float dt	= (t_f - t_0) / (float)M;           // --- Discretization time
-	float *d_t		= d_colon(t_0, dt, t_f);			// --- Discretization points
+	const float dt = (t_f - t_0) / (float)M;           // --- Discretization time
+	float *d_t = d_colon(t_0, dt, t_f);			// --- Discretization points
 
 	const float alpha = v * dt / dx;					// --- Courant number
-		
+
 	/**************************************/
 	/* DEFINE AND INITIALIZE THE SOLUTION */
 	/**************************************/
@@ -129,7 +130,7 @@ int main() {
 #endif
 	}
 
-	saveGPUrealtxt(d_u, "D:\\Project\\FDTD\\Advection-Equation\\Advection-Equation-CUDA\\Advection-Equation-CUDA\\d_u.txt", (M + 1) * (N + 1));
+	saveGPUrealtxt(d_u, "D:\\MDC2\\Advection-Equation\\Matlab\\d_u.txt", (M + 1) * (N + 1));
 
 	return 0;
 }
