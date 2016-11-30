@@ -117,7 +117,7 @@ v   = 0.5;                                  % --- Wave speed
 
 % --- Leapfrog
 [uLeapFrog, uRef, x, t] = leapFrog(@propagatingFunction, v, t_0, t_f, M, N);
-uLeapFrog = reshape(load('D:\Project\FDTD\Advection-Equation\Advection-Equation-CUDA\Advection-Equation-CUDA\d_u.txt'), N + 1, M + 1).';
+uLeapFrogCUDA = reshape(load('D:\PDEs\Advection-Equation\Matlab\d_u.txt'), N + 1, M + 1).';
 for m = 1 : M
     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
     hold on
@@ -129,6 +129,8 @@ for m = 1 : M
     figure(1)
     pause(0.1)
 end
+
+100 * sqrt(sum(sum(abs(uLeapFrog - uLeapFrogCUDA).^2)) / sum(sum(abs(uLeapFrog).^2)))
 
 pause
 
