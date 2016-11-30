@@ -31,7 +31,7 @@ v   = 0.5;                                  % --- Wave speed
 % pause
 
 [uStationary, uRef, uFW, uBW, x, t] = stationarySolution(v, t_0, t_f, M, x1, x2, N);
-uStationary = reshape(load('D:\Project\FDTD\FDTD_1D_Acoustics\FDTD_1D_Acoustics_CUDA\FDTD_1D_Acoustics_CUDA\d_u.txt'), N + 1, M + 1).'; 
+uStationaryCUDA = reshape(load('D:\PDEs\Wave-Equation\1D\Matlab\d_u.txt'), N + 1, M + 1).'; 
 for m = 1 : M
     plot(x, uRef(m, :), 'r', 'LineWidth', 2);
     hold on
@@ -45,6 +45,8 @@ for m = 1 : M
     figure(1)
     pause(0.1)
 end
+
+100 * sqrt(sum(sum(abs(uStationary - uStationaryCUDA).^2)) / sum(sum(abs(uStationary).^2)))
 
 pause
 
