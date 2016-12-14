@@ -60,7 +60,7 @@ for e = 1 : numElements   % --- Loop over the elements
     xe = globalNodes(globalNodeNumbers)';                   % --- Global coordinates of the element nodes as a column vector
    
     % --- Calculate the element integral
-	for kk = 1 : length(gaussPoints)    % --- Loop over all the Gauss points
+    for kk = 1 : length(gaussPoints)    % --- Loop over all the Gauss points
        
         [Ne, dNe] = LinearBasisFunctions1D(gaussPoints(kk));% --- Return the 1D linear basis functions along with their derivatives with respect to local coordinates xi at 
                                                             %     Gauss points
