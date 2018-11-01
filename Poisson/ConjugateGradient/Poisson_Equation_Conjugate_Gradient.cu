@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <assert.h>
 
 #include "cublas.h"
 
@@ -33,6 +34,58 @@ void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
 
 void gpuErrchk(cudaError_t ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
+/*************************/
+/* CUBLAS ERROR CHECKING */
+/*************************/
+static const char *_cublasGetErrorEnum(cublasStatus_t error)
+{
+	switch (error)
+	{
+	case CUBLAS_STATUS_SUCCESS:
+		return "CUBLAS_STATUS_SUCCESS";
+
+	case CUBLAS_STATUS_NOT_INITIALIZED:
+		return "CUBLAS_STATUS_NOT_INITIALIZED";
+
+	case CUBLAS_STATUS_ALLOC_FAILED:
+		return "CUBLAS_STATUS_ALLOC_FAILED";
+
+	case CUBLAS_STATUS_INVALID_VALUE:
+		return "CUBLAS_STATUS_INVALID_VALUE";
+
+	case CUBLAS_STATUS_ARCH_MISMATCH:
+		return "CUBLAS_STATUS_ARCH_MISMATCH";
+
+	case CUBLAS_STATUS_MAPPING_ERROR:
+		return "CUBLAS_STATUS_MAPPING_ERROR";
+
+	case CUBLAS_STATUS_EXECUTION_FAILED:
+		return "CUBLAS_STATUS_EXECUTION_FAILED";
+
+	case CUBLAS_STATUS_INTERNAL_ERROR:
+		return "CUBLAS_STATUS_INTERNAL_ERROR";
+
+	case CUBLAS_STATUS_NOT_SUPPORTED:
+		return "CUBLAS_STATUS_NOT_SUPPORTED";
+
+	case CUBLAS_STATUS_LICENSE_ERROR:
+		return "CUBLAS_STATUS_LICENSE_ERROR";
+	}
+
+	return "<unknown>";
+}
+
+inline void __cublasSafeCall(cublasStatus_t err, const char *file, const int line)
+{
+	if (CUBLAS_STATUS_SUCCESS != err) {
+		fprintf(stderr, "CUBLAS error in file '%s', line %d, error: %s\nterminating!\n", __FILE__, __LINE__, \
+			_cublasGetErrorEnum(err)); \
+			assert(0); \
+	}
+}
+
+extern "C" void cublasSafeCall(cublasStatus_t err) { __cublasSafeCall(err, __FILE__, __LINE__); }
+
 /*****************/
 /* DEVICE MEMSET */
 /*****************/
@@ -54,47 +107,37 @@ void deviceMemset(T * const devPtr, T const value, size_t const N) {
 /****************************/
 /* Ax DEVICE MULTIPLICATION */
 /****************************/
-template<class FT>
-//__global__ void multiply_by_A(int const M, FT const alpha, FT const * const x, FT * const b) {
-__global__ void multiply_by_A(int const M, FT const * const x, FT * const b) {
-	int n = M * M;
+template<class T>
+__global__ void AxKernel(int const M, T const * const d_x, T * const d_b) {
+	
+	int M2 = M * M;
+	
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
-	if (tid >= n) {
-		return;
-	}
+	
+	if (tid >= M2) return;
 
-	//FT value = (alpha + FT(4))*x[tid];
-	FT value = (FT(4))*x[tid];
+	T value = (T(4)) * d_x[tid];
 
-	if (tid % M != 0) {
-		value -= x[tid - 1];
-	}
-	if ((tid + 1) % M != 0) {
-		value -= x[tid + 1];
-	}
-	if (tid + M < n) {
-		value -= x[tid + M];
-	}
-	if (tid - M >= 0) {
-		value -= x[tid - M];
-	}
-	b[tid] = value;
+	if ( tid      % M != 0) value -= d_x[tid - 1];
+	if ((tid + 1) % M != 0)	value -= d_x[tid + 1];
+	if ( tid + M < M2) 		value -= d_x[tid + M];
+	if (tid - M >= 0)		value -= d_x[tid - M];
+	
+	d_b[tid] = value;
 }
 
 /*****************************/
 /* CONJUGATE GRADIENT SOLVER */
 /*****************************/
 template<class T>
-int conjugateGradientPoisson(cublasHandle_t const cublasHandle, int const M, T const * const d_b, T * const d_x, 
-							 int maxIter, T tol) {
+int conjugateGradientPoisson(cublasHandle_t const cublasHandle, int const M, T const * const d_b, T * const d_x,
+	int maxIter, T tol) {
 
-	//int const n = M*M;
-
-	T *d_p;		gpuErrchk(cudaMalloc(&d_p,  M * M * sizeof(T)));
-	T *d_r;		gpuErrchk(cudaMalloc(&d_r,  M * M * sizeof(T)));
-	T *d_h;		gpuErrchk(cudaMalloc(&d_h,  M * M * sizeof(T)));
+	T *d_p;		gpuErrchk(cudaMalloc(&d_p, M * M * sizeof(T)));
+	T *d_r;		gpuErrchk(cudaMalloc(&d_r, M * M * sizeof(T)));
+	T *d_h;		gpuErrchk(cudaMalloc(&d_h, M * M * sizeof(T)));
 	T *d_Ax;	gpuErrchk(cudaMalloc(&d_Ax, M * M * sizeof(T)));
-	T *d_q;		gpuErrchk(cudaMalloc(&d_q,  M * M * sizeof(T)));
+	T *d_q;		gpuErrchk(cudaMalloc(&d_q, M * M * sizeof(T)));
 
 	T beta, c, ph;
 
@@ -102,71 +145,59 @@ int conjugateGradientPoisson(cublasHandle_t const cublasHandle, int const M, T c
 	T const T_MINUS_ONE(-1);
 
 	// --- Solution initialization d_x = 0
-	deviceMemset<T>(d_x, T(0), M * M); 
+	deviceMemset<T>(d_x, T(0), M * M);
 
 	// --- d_Ax = A * d_x
-	multiply_by_A<T> << <iDivUp(M * M, 1024), 1024 >> >(M, d_x, d_Ax);
-	
-	// d_r = d_b
-	//cublas_copy(cublasHandle, n, d_b, d_r);
-	cublasTcopy(cublasHandle, M * M, d_b, 1, d_r, 1);
+	AxKernel<T> << <iDivUp(M * M, 1024), 1024 >> >(M, d_x, d_Ax);
+
+	// --- d_r = d_b
+	cublasSafeCall(cublasTcopy(cublasHandle, M * M, d_b, 1, d_r, 1));
 
 	// --- d_r = d_r - d_Ax = d_b - d_Ax
-	//cublas_axpy(cublasHandle, n, &T_MINUS_ONE, d_Ax, d_r);
-	cublasTaxpy(cublasHandle, M * M, &T_MINUS_ONE, d_Ax, 1, d_r, 1);
+	cublasSafeCall(cublasTaxpy(cublasHandle, M * M, &T_MINUS_ONE, d_Ax, 1, d_r, 1));
 
 	// --- norm0 = ||d_r||
 	T norm0;
-	//cublas_nrm2(cublasHandle, n, d_r, &norm0);
-	cublasTnrm2(cublasHandle, M * M, d_r, 1, &norm0);
+	cublasSafeCall(cublasTnrm2(cublasHandle, M * M, d_r, 1, &norm0));
 
-	// d_p = d_r
-	//cublas_copy(cublasHandle, n, d_r, d_p);
-	cublasTcopy(cublasHandle, M * M, d_r, 1, d_p, 1);
+	// --- d_p = d_r
+	cublasSafeCall(cublasTcopy(cublasHandle, M * M, d_r, 1, d_p, 1));
 
 	int numIter;
 	for (numIter = 1; numIter <= maxIter; ++numIter) {
-		
+
 		// --- beta = <d_r, d_r>
-		//cublas_dot(cublasHandle, n, d_r, d_r, &beta);
-		cublasTdot(cublasHandle, M * M, d_r, 1, d_r, 1, &beta);
+		cublasSafeCall(cublasTdot(cublasHandle, M * M, d_r, 1, d_r, 1, &beta));
 
 		// --- d_h = Ap
-		multiply_by_A<T> << <iDivUp(M * M, BLOCKSIZEMULTIPLY), BLOCKSIZEMULTIPLY >> >(M, d_p, d_h);
+		AxKernel<T> << <iDivUp(M * M, BLOCKSIZEMULTIPLY), BLOCKSIZEMULTIPLY >> >(M, d_p, d_h);
 
 		// --- ph = <d_p, d_h>
-		//cublas_dot(cublasHandle, n, d_p, d_h, &ph);
-		cublasTdot(cublasHandle, M * M, d_p, 1, d_h, 1, &ph);
+		cublasSafeCall(cublasTdot(cublasHandle, M * M, d_p, 1, d_h, 1, &ph));
 
 		c = beta / ph;
 
 		// --- d_x = d_x + c * d_p
-		//cublas_axpy(cublasHandle, n, &c, d_p, d_x);
-		cublasTaxpy(cublasHandle, M * M, &c, d_p, 1, d_x, 1);
+		cublasSafeCall(cublasTaxpy(cublasHandle, M * M, &c, d_p, 1, d_x, 1));
 
 		// --- d_r = d_r - c * d_h
 		T minus_c = -c;
-		//cublas_axpy(cublasHandle, n, &minus_c, d_h, d_r);
-		cublasTaxpy(cublasHandle, M * M, &minus_c, d_h, 1, d_r, 1);
+		cublasSafeCall(cublasTaxpy(cublasHandle, M * M, &minus_c, d_h, 1, d_r, 1));
 
 		T norm;
-		//cublas_nrm2(cublasHandle, n, d_r, &norm);
-		cublasTnrm2(cublasHandle, M * M, d_r, 1, &norm);
+		cublasSafeCall(cublasTnrm2(cublasHandle, M * M, d_r, 1, &norm));
 		if (norm <= tol * norm0) break;
 
 		// --- rr = <d_r, d_r>
 		T rr;
-		//cublas_dot(cublasHandle, n, d_r, d_r, &rr);
-		cublasTdot(cublasHandle, M * M, d_r, 1, d_r, 1, &rr);
+		cublasSafeCall(cublasTdot(cublasHandle, M * M, d_r, 1, d_r, 1, &rr));
 
 		beta = rr / beta;
 
 		// --- d_p = beta * d_p
-		//cublas_scal(cublasHandle, n, &beta, d_p);
-		cublasTscal(cublasHandle, M * M, &beta, d_p, 1);
+		cublasSafeCall(cublasTscal(cublasHandle, M * M, &beta, d_p, 1));
 
-		//cublas_axpy(cublasHandle, n, &T_ONE, d_r, d_p);
-		cublasTaxpy(cublasHandle, M * M, &T_ONE, d_r, 1, d_p, 1);
+		cublasSafeCall(cublasTaxpy(cublasHandle, M * M, &T_ONE, d_r, 1, d_p, 1));
 	}
 
 	gpuErrchk(cudaFree(d_p));
@@ -203,11 +234,11 @@ int main() {
 	cublasHandle_t cublasHandle;
 	cublasCreate(&cublasHandle);
 
-	const int		M = 128;					// --- Number of discretization points along d_u and y
+	const int		M = 128;						// --- Number of discretization points along d_u and y
 	const int		maxIter = 10000;				// --- Maximum number of iterations
-	const double    tol = 0.0000001;			// --- Conjugate gradient convergence tol
+	const double    tol = 0.0000001;				// --- Conjugate gradient convergence tol
 
-													// --- Equation right-hand side
+	// --- Equation right-hand side
 	double *d_f; gpuErrchk(cudaMalloc(&d_f, (M * M) * sizeof(double)));
 	deviceMemset<double>(d_f, (double)1.0, M * M);
 
@@ -219,17 +250,5 @@ int main() {
 
 	saveGPUrealtxt(d_u, ".\\d_result_x.txt", M * M);
 	saveGPUrealtxt(d_f, ".\\d_result_b.txt", M * M);
-
-	//double *b_3d, *x_3d;
-	//int m_3d = 128;
-
-	//cudaMalloc((void **) &b_3d, (m_3d*m_3d*m_3d)*sizeof(double));
-	//cudaMalloc((void **) &x_3d, (m_3d*m_3d*m_3d)*sizeof(double));
-	//deviceMemset<double>(b_3d, 1.0, M*M);
-
-	//ThomasPreconditioner3D<double> preconditioner_3d;
-	//numIter = solve_with_conjugate_gradient3D<double>(cublasHandle, cusparse_handle, m_3d, alpha, b_3d, x_3d, maxIter, tol, &preconditioner_3d);
-	//cout << numIter << " iterations" << endl;
-
 
 }
