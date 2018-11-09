@@ -48,9 +48,9 @@ __global__ void jacobiIteratorGPU(const T * __restrict__ d_u, T * __restrict__ d
 		d_u_old[j * M + i] = (d_u[j * M + (i - 1)] + d_u[j * M + (i + 1)] + d_u[(j - 1) * M + i] + d_u[(j + 1) * M + i] + (dxdy * d_f[j * M + i])) * 0.25;
 }
 
-/*************************************/
-/* SAVE FLOAT ARRAY FROM GPU TO FILE */
-/*************************************/
+/************************************/
+/* SAVE REAL ARRAY FROM GPU TO FILE */
+/************************************/
 template <class T>
 void saveGPUrealtxt(const T * d_in, const char *filename, const int M) {
 
