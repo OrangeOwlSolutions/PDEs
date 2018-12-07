@@ -17,7 +17,6 @@ x           = a : Deltax : b;                       % --- Node coordinates
 
 % --- Right-hand side function
 alpha       = -log(Ta) / b^2;
-% f           = @(x)(40 * (x - 0.9).^2);
 f           = @(x)(2 * alpha * exp(-alpha * x.^2) .* (1 - 2 * alpha * x.^2));
     
 % --- Exact solution
