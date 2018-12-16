@@ -1,5 +1,7 @@
 # Partial Differential Equations
 
+The codes make reference to the posted pdf versions of PowerPoint presentations.
+
 The ```Utilities.cu``` and ```Utilities.cuh``` files are mantained at
 
 https://github.com/OrangeOwlSolutions/CUDA_Utilities
